@@ -11,8 +11,16 @@ const io = new Server(server, { cors: { origin: "*" } });
 const activeUsers = {};
 
 io.on('connection', (socket) => {
-    const randX = (Math.random() - 0.5) * 15 + 3.7;
-    const randZ = (Math.random() - 0.5) * 15;
+// 1. KHAI BÁO VÙNG GIỚI HẠN (Tọa độ X và Z)
+    // Bạn hãy thay đổi các con số này để căn chỉnh vùng mong muốn
+    const minX = 1.0;  // Giới hạn cạnh trái
+    const maxX = 5.0;  // Giới hạn cạnh phải
+    const minZ = -2.0; // Giới hạn cạnh trước
+    const maxZ = 2.0;  // Giới hạn cạnh sau
+
+    // 2. TẠO VỊ TRÍ NGẪU NHIÊN TRONG VÙNG ĐÃ CHỌN
+    const randX = Math.random() * (maxX - minX) + minX;
+    const randZ = Math.random() * (maxZ - minZ) + minZ;
     const randomColor = Math.random() * 0xffffff;
 
     activeUsers[socket.id] = { id: socket.id, x: randX, z: randZ, color: randomColor };
