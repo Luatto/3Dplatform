@@ -11,30 +11,48 @@ const io = new Server(server, { cors: { origin: "*" } });
 const activeUsers = {};
 
 io.on('connection', (socket) => {
-// 1. KHAI BÁO VÙNG GIỚI HẠN (Tọa độ X và Z)
-    // Bạn hãy thay đổi các con số này để căn chỉnh vùng mong muốn
-    const minX = 2;  // Giới hạn cạnh trái
-    const maxX = 9;  // Giới hạn cạnh phải
-    const minZ = 8; // Giới hạn cạnh trước
-    const maxZ = 12;  // Giới hạn cạnh sau
+    const room = socket.handshake.query.room || 'chung';
+    socket.join(room);
 
-    // 2. TẠO VỊ TRÍ NGẪU NHIÊN TRONG VÙNG ĐÃ CHỌN
+    // Cấp một cái tên ngẫu nhiên lúc mới vào
+    const defaultName = "Khách " + Math.floor(Math.random() * 1000);
+
+    const minX = 1.0; const maxX = 5.0; 
+    const minZ = -2.0; const maxZ = 2.0;
     const randX = Math.random() * (maxX - minX) + minX;
     const randZ = Math.random() * (maxZ - minZ) + minZ;
     const randomColor = Math.random() * 0xffffff;
 
-    activeUsers[socket.id] = { id: socket.id, x: randX, z: randZ, color: randomColor };
+    // Lưu thêm thuộc tính 'name'
+    activeUsers[socket.id] = { 
+        id: socket.id, x: randX, z: randZ, color: randomColor, room: room, name: defaultName 
+    };
 
-    socket.emit('currentUsers', activeUsers);
-    socket.broadcast.emit('userJoined', activeUsers[socket.id]);
+    const usersInRoom = {};
+    for (let id in activeUsers) {
+        if (activeUsers[id].room === room) {
+            usersInRoom[id] = activeUsers[id];
+        }
+    }
+    
+    socket.emit('currentUsers', usersInRoom);
+    socket.to(room).emit('userJoined', activeUsers[socket.id]);
+
+    // Lắng nghe khi có người đổi tên
+    socket.on('updateName', (newName) => {
+        if (activeUsers[socket.id]) {
+            activeUsers[socket.id].name = newName;
+            // Phát tên mới cho tất cả mọi người trong phòng (bao gồm cả người vừa đổi)
+            io.to(room).emit('nameUpdated', { id: socket.id, name: newName });
+        }
+    });
 
     socket.on('disconnect', () => {
         delete activeUsers[socket.id];
-        io.emit('userLeft', socket.id);
+        io.to(room).emit('userLeft', socket.id);
     });
 });
 
-// --- ĐOẠN NÀY LÀ QUAN TRỌNG NHẤT ĐỂ CHẠY TRÊN RENDER ---
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server đang chạy tại port ${PORT}`);
