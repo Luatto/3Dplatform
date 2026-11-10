@@ -15,8 +15,8 @@ io.on('connection', (socket) => {
     // Bạn hãy thay đổi các con số này để căn chỉnh vùng mong muốn
     const minX = 2;  // Giới hạn cạnh trái
     const maxX = 9;  // Giới hạn cạnh phải
-    const minZ = 3; // Giới hạn cạnh trước
-    const maxZ = 5;  // Giới hạn cạnh sau
+    const minZ = 7; // Giới hạn cạnh trước
+    const maxZ = 10;  // Giới hạn cạnh sau
 
     // 2. TẠO VỊ TRÍ NGẪU NHIÊN TRONG VÙNG ĐÃ CHỌN
     const randX = Math.random() * (maxX - minX) + minX;
