@@ -47,6 +47,18 @@ io.on('connection', (socket) => {
         }
     });
 
+    // --- THÊM ĐOẠN CODE NÀY VÀO ---
+    // Lắng nghe sự kiện cắm cờ từ 1 người dùng
+    socket.on('plantFlag', (flagData) => {
+        if (activeUsers[socket.id]) {
+            // Gắn tên hiện tại của người dùng vào dữ liệu cờ
+            flagData.userName = activeUsers[socket.id].name;
+            // Phát cờ này cho tất cả những người khác trong cùng phòng
+            socket.to(room).emit('flagPlanted', flagData);
+        }
+    });
+    // -----------------------------
+
     socket.on('disconnect', () => {
         delete activeUsers[socket.id];
         io.to(room).emit('userLeft', socket.id);
