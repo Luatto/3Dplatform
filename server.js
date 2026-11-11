@@ -69,6 +69,11 @@ io.on('connection', (socket) => {
     });
     // -----------------------------
 
+    // Lắng nghe sự kiện người dùng đọc kinh
+    socket.on('pray', (data) => {
+        socket.to(room).emit('userPrayed', data);
+    });
+
     socket.on('disconnect', () => {
         delete activeUsers[socket.id];
         io.to(room).emit('userLeft', socket.id);
