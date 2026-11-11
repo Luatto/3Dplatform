@@ -1,3 +1,4 @@
+let currentPrayingUser = null;
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -69,14 +70,27 @@ io.on('connection', (socket) => {
     });
     // -----------------------------
 
-    // Lắng nghe sự kiện người dùng đọc kinh
+    // Lắng nghe sự kiện người dùng xin đọc kinh
     socket.on('pray', (data) => {
-        socket.to(room).emit('userPrayed', data);
-    });
-
-    socket.on('disconnect', () => {
-        delete activeUsers[socket.id];
-        io.to(room).emit('userLeft', socket.id);
+        // Kiểm tra xem có ai đang khấn không
+        if (currentPrayingUser) {
+            // Nếu có, từ chối và gửi tên người đó về để báo lỗi
+            socket.emit('prayRejected', { prayingName: currentPrayingUser });
+        } else {
+            // Khóa lại bằng tên của người vừa gửi
+            currentPrayingUser = data.userName;
+            
+            // Phản hồi "Đồng ý" cho người bấm nút
+            socket.emit('prayAccepted', data);
+            
+            // Phát hình nộm cho tất cả những người khác trong phòng
+            socket.to(room).emit('userPrayed', data); // (Lưu ý: Nếu code cũ dùng socket.broadcast.emit thì bạn đổi lại cho khớp nhé)
+            
+            // Mở khóa sau đúng 90 giây (khớp với thời gian hình nộm rơi xuống đất)
+            setTimeout(() => {
+                currentPrayingUser = null;
+            }, 90000);
+        }
     });
 });
 
