@@ -47,6 +47,16 @@ io.on('connection', (socket) => {
         }
     });
 
+    // --- THÊM ĐOẠN NÀY ĐỂ XỬ LÝ MŨ ---
+    socket.on('toggleHat', (isWearingHat) => {
+        if (activeUsers[socket.id]) {
+            activeUsers[socket.id].hasHat = isWearingHat;
+            // Báo cho mọi người trong phòng biết người này vừa đội/tháo mũ
+            io.to(room).emit('hatUpdated', { id: socket.id, hasHat: isWearingHat });
+        }
+    });
+    // ---------------------------------
+
     // --- THÊM ĐOẠN CODE NÀY VÀO ---
     // Lắng nghe sự kiện cắm cờ từ 1 người dùng
     socket.on('plantFlag', (flagData) => {
