@@ -75,12 +75,14 @@ io.on('connection', (socket) => {
         if (activeUsers[socket.id]) {
             // Cập nhật vị trí mới vào dữ liệu người dùng trên server (để người vào sau cũng thấy)
             activeUsers[socket.id].x = pos.x;
+            activeUsers[socket.id].y = pos.y; // Lưu thêm y
             activeUsers[socket.id].z = pos.z;
             
             // Phát tọa độ mới cho tất cả mọi người trong phòng (bao gồm cả người vừa click)
             io.to(room).emit('userMoved', {
                 id: socket.id,
                 x: pos.x,
+                y: pos.y,
                 z: pos.z
             });
         }
