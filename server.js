@@ -88,6 +88,18 @@ io.on('connection', (socket) => {
         }
     });
     // --------------------------------------------------------
+
+// --- THÊM ĐOẠN NÀY ĐỂ KIỂM TRA TRẠNG THÁI TRƯỚC KHI HIỆN PROMPT ---
+    socket.on('checkPrayStatus', () => {
+        if (currentPrayingUser) {
+            // Có người đang khấn, báo lỗi ngay
+            socket.emit('prayRejected', { prayingName: currentPrayingUser });
+        } else {
+            // Không có ai khấn, cho phép hiện bảng nhập chữ
+            socket.emit('prayAvailable');
+        }
+    });
+    // -----------------------------------------------------------------
     
     // Lắng nghe sự kiện người dùng xin đọc kinh
     socket.on('pray', (data) => {
