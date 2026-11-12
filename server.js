@@ -8,7 +8,20 @@ const app = express();
 app.use(cors());
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
+const axios = require('axios');
+const CHAT_API_URL = 'https://api.dauthienglachong.vn/3d-models/coworking/co-workingcmt.php';
 
+let chatHistory = [];
+
+// Tải ngay lịch sử từ Host về biến tạm khi khởi động server
+axios.get(CHAT_API_URL)
+    .then(res => {
+        if (Array.isArray(res.data)) {
+            chatHistory = res.data;
+            console.log("Đã tải lịch sử chat:", chatHistory.length, "tin nhắn.");
+        }
+    })
+    .catch(err => console.error("Lỗi tải lịch sử chat từ Host"));
 const activeUsers = {};
 
 io.on('connection', (socket) => {
