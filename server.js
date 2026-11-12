@@ -25,6 +25,22 @@ axios.get(CHAT_API_URL)
 const activeUsers = {};
 
 io.on('connection', (socket) => {
+    // Gửi toàn bộ lịch sử chat cho người dùng ngay khi họ vừa kết nối
+    socket.emit('loadChatHistory', chatHistory);
+
+    // Lắng nghe sự kiện người dùng gửi tin nhắn
+    socket.on('sendComment', (data) => {
+        // 1. Thêm vào mảng tạm trên RAM của Render
+        chatHistory.push(data);
+        if (chatHistory.length > 100) chatHistory.shift();
+        
+        // 2. Phát ngay cho mọi người trong phòng để giao diện hiển thị tức thì
+        io.to(room).emit('receiveComment', data);
+        
+        // 3. Âm thầm gửi tin nhắn này về Host PHP để lưu vĩnh viễn
+        axios.post(CHAT_API_URL, data).catch(err => console.error("Lỗi lưu chat lên Host"));
+    });
+    
     const room = socket.handshake.query.room || 'chung';
     socket.join(room);
 
