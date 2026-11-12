@@ -1,4 +1,6 @@
-let currentPrayingUser = null;
+// Đổi thành Object để quản lý trạng thái khấn của nhiều phòng
+let currentPrayingUsers = {};
+
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -144,11 +146,11 @@ io.on('connection', (socket) => {
 
 // --- THÊM ĐOẠN NÀY ĐỂ KIỂM TRA TRẠNG THÁI TRƯỚC KHI HIỆN PROMPT ---
     socket.on('checkPrayStatus', () => {
-        if (currentPrayingUser) {
-            // Có người đang khấn, báo lỗi ngay
-            socket.emit('prayRejected', { prayingName: currentPrayingUser });
+        if (currentPrayingUsers[room]) {
+            // Có người đang khấn trong phòng này, báo lỗi ngay
+            socket.emit('prayRejected', { prayingName: currentPrayingUsers[room] });
         } else {
-            // Không có ai khấn, cho phép hiện bảng nhập chữ
+            // Không có ai khấn trong phòng này, cho phép hiện bảng nhập chữ
             socket.emit('prayAvailable');
         }
     });
@@ -156,13 +158,13 @@ io.on('connection', (socket) => {
     
     // Lắng nghe sự kiện người dùng xin đọc kinh
     socket.on('pray', (data) => {
-        // Kiểm tra xem có ai đang khấn không
-        if (currentPrayingUser) {
+        // Kiểm tra xem có ai đang khấn trong PHÒNG NÀY không
+        if (currentPrayingUsers[room]) {
             // Nếu có, từ chối và gửi tên người đó về để báo lỗi
-            socket.emit('prayRejected', { prayingName: currentPrayingUser });
+            socket.emit('prayRejected', { prayingName: currentPrayingUsers[room] });
         } else {
-            // Khóa lại bằng tên của người vừa gửi
-            currentPrayingUser = data.userName;
+            // Khóa lại bằng tên của người vừa gửi riêng cho PHÒNG NÀY
+            currentPrayingUsers[room] = data.userName;
             
             // Phản hồi "Đồng ý" cho người bấm nút
             socket.emit('prayAccepted', data);
@@ -172,7 +174,7 @@ io.on('connection', (socket) => {
             
             // Mở khóa sau đúng 90 giây (khớp với thời gian hình nộm rơi xuống đất)
             setTimeout(() => {
-                currentPrayingUser = null;
+                currentPrayingUsers[room] = null;
             }, 90000);
         }
     });
