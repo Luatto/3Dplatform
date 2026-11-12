@@ -11,38 +11,62 @@ const io = new Server(server, { cors: { origin: "*" } });
 const axios = require('axios');
 const CHAT_API_URL = 'https://api.dauthienglachong.vn/3d-models/coworking/co-workingcmt.php';
 
-let chatHistory = [];
+// Đổi thành Object để chứa lịch sử của nhiều phòng khác nhau
+let chatHistories = {};
 
-// Tải ngay lịch sử từ Host về biến tạm khi khởi động server
-axios.get(CHAT_API_URL)
-    .then(res => {
-        if (Array.isArray(res.data)) {
-            chatHistory = res.data;
-            console.log("Đã tải lịch sử chat:", chatHistory.length, "tin nhắn.");
-        }
-    })
-    .catch(err => console.error("Lỗi tải lịch sử chat từ Host"));
 const activeUsers = {};
 
 io.on('connection', (socket) => {
-    // Gửi toàn bộ lịch sử chat cho người dùng ngay khi họ vừa kết nối
-    socket.emit('loadChatHistory', chatHistory);
-
-    // Lắng nghe sự kiện người dùng gửi tin nhắn
-    socket.on('sendComment', (data) => {
-        // 1. Thêm vào mảng tạm trên RAM của Render
-        chatHistory.push(data);
-        if (chatHistory.length > 100) chatHistory.shift();
-        
-        // 2. Phát ngay cho mọi người trong phòng để giao diện hiển thị tức thì
-        io.to(room).emit('receiveComment', data);
-        
-        // 3. Âm thầm gửi tin nhắn này về Host PHP để lưu vĩnh viễn
-        axios.post(CHAT_API_URL, data).catch(err => console.error("Lỗi lưu chat lên Host"));
-    });
-    
+    // 1. Xác định phòng ngay khi kết nối
     const room = socket.handshake.query.room || 'chung';
     socket.join(room);
+
+    // ==============================================
+    // LOGIC CHAT TÁCH PHÒNG
+    // ==============================================
+    
+    // Hàm tải lịch sử chat của đúng phòng người dùng đang vào
+    const loadRoomChat = async () => {
+        if (!chatHistories[room]) {
+            try {
+                const res = await axios.get(`${CHAT_API_URL}?room=${room}`);
+                chatHistories[room] = Array.isArray(res.data) ? res.data : [];
+                console.log(`Đã tải lịch sử chat phòng [${room}]: ${chatHistories[room].length} tin nhắn.`);
+            } catch (err) {
+                console.error(`Lỗi tải lịch sử chat cho phòng ${room}`);
+                chatHistories[room] = []; 
+            }
+        }
+        
+        // Gửi lịch sử chat riêng của phòng này cho người dùng
+        socket.emit('loadChatHistory', chatHistories[room]);
+    };
+    
+    // Gọi hàm ngay lập tức
+    loadRoomChat();
+
+    // Lắng nghe sự kiện gửi tin nhắn
+    socket.on('sendComment', (data) => {
+        // Phòng hờ trường hợp mảng chưa được khởi tạo
+        if (!chatHistories[room]) chatHistories[room] = [];
+
+        // 1. Thêm vào mảng tạm trên RAM của phòng tương ứng
+        chatHistories[room].push(data);
+        if (chatHistories[room].length > 100) chatHistories[room].shift();
+        
+        // 2. Chỉ phát tin nhắn cho những người trong cùng phòng
+        io.to(room).emit('receiveComment', data);
+        
+        // 3. Gửi lên PHP, kẹp thêm biến 'room' để PHP biết lưu vào file nào
+        const payload = { 
+            room: room, 
+            name: data.name, 
+            text: data.text, 
+            time: data.time 
+        };
+        axios.post(CHAT_API_URL, payload).catch(err => console.error("Lỗi lưu chat lên Host"));
+    });
+    // ==============================================
 
     // Cấp một cái tên ngẫu nhiên lúc mới vào
     const defaultName = "Khách " + Math.floor(Math.random() * 1000);
@@ -144,7 +168,7 @@ io.on('connection', (socket) => {
             socket.emit('prayAccepted', data);
             
             // Phát hình nộm cho tất cả những người khác trong phòng
-            socket.to(room).emit('userPrayed', data); // (Lưu ý: Nếu code cũ dùng socket.broadcast.emit thì bạn đổi lại cho khớp nhé)
+            socket.to(room).emit('userPrayed', data); 
             
             // Mở khóa sau đúng 90 giây (khớp với thời gian hình nộm rơi xuống đất)
             setTimeout(() => {
