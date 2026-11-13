@@ -73,10 +73,10 @@ io.on('connection', (socket) => {
     // Cấp một cái tên ngẫu nhiên lúc mới vào
     const defaultName = "Khách " + Math.floor(Math.random() * 1000);
 
-    const minX = 5; const maxX = 9; 
-    const minZ = 8; const maxZ = 12;
-    const randX = Math.random() * (maxX - minX) + minX;
-    const randZ = Math.random() * (maxZ - minZ) + minZ;
+    // TỌA ĐỘ HÌNH NỘM TẠM THỜI (0,0)
+    const randX = 0;
+    const randZ = 0;
+    
     const randomColor = Math.random() * 0xffffff;
 
     // Lưu thêm thuộc tính 'name'
