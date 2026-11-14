@@ -155,7 +155,19 @@ io.on('connection', (socket) => {
         }
     });
     // -----------------------------------------------------------------
-    
+    // Lắng nghe sự kiện người dùng ngắt kết nối (tắt tab, mất mạng...)
+    socket.on('disconnect', () => {
+        if (activeUsers[socket.id]) {
+            // Lấy tên phòng của người dùng trước khi xóa
+            const userRoom = activeUsers[socket.id].room;
+            
+            // Xóa dữ liệu người dùng khỏi RAM của server
+            delete activeUsers[socket.id];
+            
+            // Phát tín hiệu 'userLeft' cho những người còn lại trong phòng để frontend tự động xóa hình nộm
+            io.to(userRoom).emit('userLeft', socket.id);
+        }
+    });
     // Lắng nghe sự kiện người dùng xin đọc kinh
     socket.on('pray', (data) => {
         // Kiểm tra xem có ai đang khấn trong PHÒNG NÀY không
